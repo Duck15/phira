@@ -28,6 +28,7 @@ delete = 删除
 rate = 评分
 exercise = 练习
 offset = 调整延迟
+unlock = 播放解锁动画
 
 edit-cancel = 取消
 edit-save = 保存
@@ -38,25 +39,30 @@ edit-saved = 保存成功
 edit-preview-invalid = 预览时间超出范围
 edit-tags = 编辑标签
 edit-downloaded = 你不能编辑下载的谱面
+edit-overwrite = 覆盖
+edit-overwrite-confirm = 你确定要使用外部的谱面覆盖当前的谱面吗？（只有在点击“更新”后才会同步到在线平台）
+edit-overwrite-success = 已覆盖
+edit-overwrite-failed = 覆盖失败
 
 edit-upload = 上传
 edit-update = 更新
 
+upload-not-saved = 你还没有保存谱面，确定要继续上传吗？
 upload-login-first = 请先登录
 upload-builtin = 不能上传内置谱面
 upload-rules = 上传须知
 upload-rules-content =
   在上传前，你需要确认：
-  1. ！谱面为本人创作；
-  2. 建议使用辨识度高的头像和 ID；如果你在 Phira 使用的头像 ID 与自制谱视频发布平台（具体而言，BiliBili）有较大出入，需要额外标注；
-  3. ！禁止违反规则未经谱师同意随意上传谱面，否则可能面临永久禁止上传的惩罚；
-  4. 谱面内容（包括音乐、插图、文字等）须符合中华人民共和国其他法律法规，不得违法或包含不良信息。
-upload-cancel = 再想想
-upload-confirm = 确认上传
+  1. ！谱面必须为本人创作，合作需具有所有创作者的上传许可，否则可能面临永久禁止上传的惩罚
+  2. 建议使用辨识度高的头像和 ID；如果你在 Phira 使用的头像 ID 与自制谱视频发布平台（具体而言，BiliBili）有较大出入，需要额外标注。同时请注明方便使用的语言（若非汉语）
+  3. 谱面内容（包括音乐、插图、文字等）须符合中华人民共和国其他法律法规，不得违法或包含不良信息
+  4. 上传者上传即同意谱面可用于 Phira 的公开宣传，其他方式利用仍需谱师许可
+  5. 本须知最终解释权归 TeamFlos 所有
 uploading = 上传中…
 upload-chart-failed = 上传谱面失败
 upload-success = 上传成功，请等待审核！
 upload-failed = 上传失败
+upload-confirm-clear-ldb = 由于当前谱面文件和远端谱面文件不同，上传谱面后将清空该谱面的排行榜，确定要继续吗？
 
 ldb = 排行榜
 ldb-load-failed = 加载排行榜失败
@@ -72,6 +78,9 @@ info-desc = 简介
 info-rating = 评分
 info-type = 种类
 info-tags = 标签
+
+reviewed = 已审核
+unreviewed = 未审核
 
 review-approve = 通过
 review-deny = 拒绝

@@ -22,6 +22,7 @@ use std::{
     sync::{Arc, Mutex},
     task::{Poll, RawWaker, RawWakerVTable, Waker},
 };
+use tracing::{debug, info_span};
 
 pub type LocalTask<R> = Option<Pin<Box<dyn Future<Output = R>>>>;
 
@@ -157,15 +158,17 @@ pub fn nalgebra_to_glm(mat: &Matrix) -> Mat4 {
 
 pub fn get_viewport() -> (i32, i32, i32, i32) {
     let gl = unsafe { get_internal_gl() };
-    let that = gl.quad_gl.get_viewport();
-    if that == (0, 0, screen_width() as _, screen_height() as _) {
-        gl.quad_gl.get_active_render_pass().map_or(that, |it| {
-            let tex = it.texture(gl.quad_context);
-            (0, 0, tex.width as i32, tex.height as i32)
-        })
-    } else {
-        that
-    }
+    gl.quad_gl.get_viewport().unwrap_or_else(|| {
+        let (w, h) = gl
+            .quad_gl
+            .get_active_render_pass()
+            .map(|it| {
+                let tex = it.texture(gl.quad_context);
+                (tex.width as i32, tex.height as i32)
+            })
+            .unwrap_or_else(|| (screen_width() as _, screen_height() as _));
+        (0, 0, w, h)
+    })
 }
 
 #[inline]
@@ -173,7 +176,7 @@ pub fn draw_text_aligned(ui: &mut Ui, text: &str, x: f32, y: f32, anchor: (f32, 
     ui.text(text).pos(x, y).anchor(anchor.0, anchor.1).size(scale).color(color).draw()
 }
 
-#[derive(Default, Clone, Copy, Deserialize)]
+#[derive(Debug, Default, Clone, Copy, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub enum ScaleType {
     #[default]
@@ -199,10 +202,10 @@ pub fn source_of_image(tex: &Texture2D, rect: Rect, scale_type: ScaleType) -> Op
             let exp = rect.w / rect.h;
             let act = tex.width() / tex.height();
             Some(if exp > act {
-                let w = act / exp;
+                let w = exp / act;
                 Rect::new(0.5 - w / 2., 0., w, 1.)
             } else {
-                let h = exp / act;
+                let h = act / exp;
                 Rect::new(0., 0.5 - h / 2., 1., h)
             })
         }
@@ -334,14 +337,14 @@ pub fn thread_as_future<R: Send + 'static>(f: impl FnOnce() -> R + Send + 'stati
     DummyFuture(arc)
 }
 
-pub fn spawn_task<R: Send + 'static>(future: impl Future<Output = R> + Send + 'static) -> impl Future<Output = anyhow::Result<R>> {
+pub async fn spawn_task<R: Send + 'static>(f: impl FnOnce() -> Result<R> + Send + 'static) -> Result<R> {
     #[cfg(target_arch = "wasm32")]
     {
-        async move { Ok(future.await) }
+        f()
     }
     #[cfg(not(target_arch = "wasm32"))]
     {
-        async move { Ok(tokio::spawn(future).await?) }
+        Ok(tokio::task::spawn_blocking(f).await??)
     }
 }
 
@@ -455,26 +458,27 @@ pub fn unzip_into<R: std::io::Read + std::io::Seek>(reader: R, dir: &crate::dir:
     } else {
         String::new()
     };
-    info!("root is {}", root);
+    let _span = info_span!("unzip").entered();
+    debug!("root is {root}");
     for i in 0..zip.len() {
         let mut entry = zip.by_index(i)?;
         let path = entry.enclosed_name().ok_or_else(|| anyhow!("invalid zip"))?;
         let path = path.display().to_string();
-        info!("entry: {}", path);
+        debug!("entry: {path}");
         if entry.is_dir() && entry.name() != root {
             if let Some(after) = path.strip_prefix(&root) {
-                info!("- mkdir: {}", after);
+                debug!("mkdir: {after}");
                 dir.create_dir_all(after)?;
             }
         } else if entry.is_file() {
             if let Some(after) = path.strip_prefix(&root) {
                 if let Some(p) = std::path::Path::new(after).parent() {
                     if !dir.exists(p)? {
-                        info!("- mkdir {}", p.display());
+                        debug!("mkdir {}", p.display());
                         dir.create_dir_all(p)?;
                     }
                 }
-                info!("- create {}", after);
+                debug!("create {}", after);
                 let mut file = dir.create(after)?;
                 std::io::copy(&mut entry, &mut file)?;
             }
@@ -503,6 +507,39 @@ pub fn parse_time(s: &str) -> Option<f32> {
         res += hrs.parse::<u32>().ok()? as f32 * 3600.;
     }
     Some(res)
+}
+
+pub fn open_url(url: &str) -> Result<()> {
+    cfg_if::cfg_if! {
+        if #[cfg(target_os = "android")] {
+            unsafe {
+                let env = miniquad::native::attach_jni_env();
+                let ctx = ndk_context::android_context().context();
+                let class = (**env).GetObjectClass.unwrap()(env, ctx);
+                let method =
+                    (**env).GetMethodID.unwrap()(env, class, b"openUrl\0".as_ptr() as _, b"(Ljava/lang/String;)V\0".as_ptr() as _);
+                let url = std::ffi::CString::new(url.to_owned()).unwrap();
+                (**env).CallVoidMethod.unwrap()(
+                    env,
+                    ctx,
+                    method,
+                    (**env).NewStringUTF.unwrap()(env, url.as_ptr()),
+                );
+            }
+        } else if #[cfg(target_os = "ios")] {
+            unsafe {
+                use crate::objc::*;
+
+                let application: ObjcId = msg_send![class!(UIApplication), sharedApplication];
+                let url: ObjcId = msg_send![class!(NSURL), URLWithString: str_to_ns(url)];
+                let _: () = msg_send![application, openURL: url];
+            }
+        } else {
+            open::that(url)?;
+        }
+    }
+
+    Ok(())
 }
 
 mod shader {

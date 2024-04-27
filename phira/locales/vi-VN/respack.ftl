@@ -1,12 +1,13 @@
 
-default = Mặc định
-load-failed = Tải gói t.nguyên thất bại
+label = TÀI NGUYÊN
 
-info = Thông tin gói tài nguyên
+default = Mặc định
+load-failed = Không thể tải tài nguyên
+info = Thông tin
 info-content =
   Tên: { $name }
   Tác giả: { $author }
-  Mô Tả: { $desc }
+  Mô tả: { $desc }
 
-cant-delete-builtin = Không thể xóa gói nguồn tích hợp sẵn
+cant-delete-builtin = Không thể xóa mặc định
 deleted = Đã xóa

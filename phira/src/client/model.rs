@@ -1,6 +1,12 @@
 mod chart;
 pub use chart::*;
 
+mod collection;
+pub use collection::*;
+
+mod event;
+pub use event::*;
+
 mod message;
 pub use message::*;
 
@@ -10,7 +16,7 @@ pub use record::*;
 mod user;
 pub use user::*;
 
-use super::{Client, CLIENT_TOKEN};
+use super::{basic_client_builder, Client, CLIENT_TOKEN};
 use crate::{
     dir,
     images::{THUMBNAIL_HEIGHT, THUMBNAIL_WIDTH},
@@ -173,9 +179,9 @@ pub struct File {
 }
 impl File {
     fn request(&self) -> reqwest::RequestBuilder {
-        let req = reqwest::Client::new().get(&self.url);
+        let req = basic_client_builder().build().unwrap().get(&self.url);
         if let Some(token) = CLIENT_TOKEN.load().as_ref() {
-            req.header("Authorization", format!("Bearer {}", token))
+            req.header("Authorization", format!("Bearer {token}"))
         } else {
             req
         }
@@ -208,7 +214,7 @@ impl File {
             }
             .load_image()
             .await
-        } else if self.url.starts_with("https://files.phira.cn/") {
+        } else if self.url.starts_with("https://files.phira.cn/") || self.url.starts_with("https://api.phira.cn/files/") {
             File {
                 url: format!("{}.thumbnail", self.url),
             }
@@ -217,5 +223,66 @@ impl File {
         } else {
             self.load_image().await
         }
+    }
+}
+
+#[derive(Clone, Debug, Serialize, Deserialize)]
+pub struct Character {
+    pub id: String,
+    pub name: String,
+    pub intro: String,
+    pub illust: String,
+    pub artist: String,
+    pub designer: String,
+
+    #[serde(default)]
+    pub name_size: Option<f32>,
+
+    #[serde(default)]
+    pub baseline: bool,
+
+    #[serde(default)]
+    pub illu_adjust: (f32, f32, f32, f32),
+
+    #[serde(skip)]
+    name_en: Option<String>,
+}
+impl Default for Character {
+    fn default() -> Self {
+        Self {
+            id: "shee".to_owned(),
+            name: ttl!("main-character-name").into_owned(),
+            intro: ttl!("main-character-intro").into_owned(),
+            illust: "@".to_owned(),
+            artist: "清水QR".to_owned(),
+            designer: "清水QR".to_owned(),
+
+            name_size: None,
+
+            baseline: false,
+
+            illu_adjust: (0., 0., 0., 0.),
+
+            name_en: None,
+        }
+    }
+}
+impl Character {
+    pub fn name_en(&mut self) -> &str {
+        if self.name_en.is_none() {
+            let words = self.id.split('_');
+            let mut name_en = String::new();
+            for word in words {
+                let (first, rest) = word.split_at(1);
+                name_en.push_str(&first.to_uppercase());
+                name_en.push_str(rest);
+                name_en.push(' ');
+            }
+            if !name_en.is_empty() {
+                name_en.pop();
+            }
+            self.name_en = Some(name_en);
+        }
+        self.name_en.as_ref().unwrap()
     }
 }

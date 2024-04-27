@@ -1,14 +1,16 @@
+crate::tl_file!("parser" ptl);
+
 use super::{process_lines, RPE_TWEEN_MAP};
 use crate::{
     core::{
         Anim, AnimFloat, AnimVector, BezierTween, BpmList, Chart, ChartExtra, ChartSettings, ClampedTween, CtrlObject, JudgeLine, JudgeLineCache,
         JudgeLineKind, Keyframe, Note, NoteKind, Object, StaticTween, Triple, TweenFunction, Tweenable, UIElement, EPS, HEIGHT_RATIO,
     },
-    ext::NotNanExt,
+    ext::{NotNanExt, SafeTexture},
     fs::FileSystem,
     judge::JudgeStatus,
 };
-use anyhow::{bail, Context, Result};
+use anyhow::{Context, Result};
 use macroquad::prelude::{Color, WHITE};
 use serde::Deserialize;
 use std::{cell::RefCell, collections::HashMap, rc::Rc};
@@ -314,7 +316,7 @@ fn parse_notes(r: &mut BpmList, rpe: Vec<RPENote>, height: &mut AnimFloat) -> Re
                     }
                     3 => NoteKind::Flick,
                     4 => NoteKind::Drag,
-                    _ => bail!("Unknown note type: {}", note.kind),
+                    _ => ptl!(bail "unknown-note-type", "type" => note.kind),
                 },
                 time,
                 height: note_height,
@@ -356,7 +358,7 @@ async fn parse_judge_line(r: &mut BpmList, rpe: RPEJudgeLine, max_time: f32, fs:
             .iter()
             .filter_map(|it| get(it).as_ref().map(|es| parse_events(r, es, None, bezier_map)))
             .collect::<Result<_>>()
-            .with_context(|| format!("Failed to parse {desc} events"))?;
+            .with_context(|| ptl!("type-events-parse-failed", "type" => desc))?;
         let mut res = AnimFloat::chain(anis);
         res.map_value(|v| v * factor);
         Ok(res)
@@ -382,11 +384,7 @@ async fn parse_judge_line(r: &mut BpmList, rpe: RPEJudgeLine, max_time: f32, fs:
                     res.map_value(|v| v * factor);
                     Ok(res)
                 }
-                let factor = if rpe.texture == "line.png" {
-                    1.
-                } else {
-                    2.57 / RPE_WIDTH /*TODO tweak*/
-                };
+                let factor = if rpe.texture == "line.png" { 1. } else { 2. / RPE_WIDTH };
                 rpe.extended
                     .as_ref()
                     .map(|e| -> Result<_> {
@@ -423,32 +421,35 @@ async fn parse_judge_line(r: &mut BpmList, rpe: RPEJudgeLine, max_time: f32, fs:
         }),
         height,
         incline: if let Some(events) = rpe.extended.as_ref().and_then(|e| e.incline_events.as_ref()) {
-            parse_events(r, events, Some(0.), bezier_map).context("Failed to parse incline events")?
+            parse_events(r, events, Some(0.), bezier_map).with_context(|| ptl!("incline-events-parse-failed"))?
         } else {
             AnimFloat::default()
         },
         notes,
         kind: if rpe.texture == "line.png" {
             if let Some(events) = rpe.extended.as_ref().and_then(|e| e.paint_events.as_ref()) {
-                JudgeLineKind::Paint(parse_events(r, events, Some(-1.), bezier_map).context("Failed to parse paint events")?, RefCell::default())
+                JudgeLineKind::Paint(
+                    parse_events(r, events, Some(-1.), bezier_map).with_context(|| ptl!("paint-events-parse-failed"))?,
+                    RefCell::default(),
+                )
             } else if let Some(events) = rpe.extended.as_ref().and_then(|e| e.text_events.as_ref()) {
-                JudgeLineKind::Text(parse_events(r, events, Some(String::new()), bezier_map).context("Failed to parse text events")?)
+                JudgeLineKind::Text(parse_events(r, events, Some(String::new()), bezier_map).with_context(|| ptl!("text-events-parse-failed"))?)
             } else {
                 JudgeLineKind::Normal
             }
         } else {
             JudgeLineKind::Texture(
-                image::load_from_memory(
+                SafeTexture::from(image::load_from_memory(
                     &fs.load_file(&rpe.texture)
                         .await
-                        .with_context(|| format!("failed to load illustration {}", rpe.texture))?,
-                )?
-                .into(),
+                        .with_context(|| ptl!("illustration-load-failed", "path" => rpe.texture.clone()))?,
+                )?)
+                .with_mipmap(),
                 rpe.texture.clone(),
             )
         },
         color: if let Some(events) = rpe.extended.as_ref().and_then(|e| e.color_events.as_ref()) {
-            parse_events(r, events, Some(WHITE), bezier_map).context("Failed to parse color events")?
+            parse_events(r, events, Some(WHITE), bezier_map).with_context(|| ptl!("color-events-parse-failed"))?
         } else {
             Anim::default()
         },
@@ -497,7 +498,7 @@ fn get_bezier_map(rpe: &RPEChart) -> BezierMap {
 }
 
 pub async fn parse_rpe(source: &str, fs: &mut dyn FileSystem, extra: ChartExtra) -> Result<Chart> {
-    let rpe: RPEChart = serde_json::from_str(source).context("Failed to parse JSON")?;
+    let rpe: RPEChart = serde_json::from_str(source).with_context(|| ptl!("json-parse-failed"))?;
     let bezier_map = get_bezier_map(&rpe);
     let mut r = BpmList::new(rpe.bpm_list.into_iter().map(|it| (it.start_time.beats(), it.bpm)).collect());
     fn vec<T>(v: &Option<Vec<T>>) -> impl Iterator<Item = &T> {
@@ -511,7 +512,7 @@ pub async fn parse_rpe(source: &str, fs: &mut dyn FileSystem, extra: ChartExtra)
             line.notes.as_ref().map(|notes| {
                 notes
                     .iter()
-                    .map(|note| r.time(&note.start_time).not_nan())
+                    .map(|note| r.time(&note.end_time).not_nan())
                     .max()
                     .unwrap_or_default()
             }).unwrap_or_default().max(
@@ -541,7 +542,7 @@ pub async fn parse_rpe(source: &str, fs: &mut dyn FileSystem, extra: ChartExtra)
         lines.push(
             parse_judge_line(&mut r, rpe, max_time, fs, &bezier_map)
                 .await
-                .with_context(move || format!("In judge line #{id} ({name})"))?,
+                .with_context(move || ptl!("judge-line-location-name", "jlid" => id, "name" => name))?,
         );
     }
     process_lines(&mut lines);

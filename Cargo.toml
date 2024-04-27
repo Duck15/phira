@@ -1,8 +1,11 @@
 [workspace]
 members = [
 	"prpr",
+	"prpr-avc",
+	"prpr-pbc",
 	"phira",
-	"phira-main"
+	"phira-main",
+	"phira-monitor",
 ]
 resolver = "2"
 

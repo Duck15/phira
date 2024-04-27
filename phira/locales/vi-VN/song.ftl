@@ -1,111 +1,128 @@
 
-load-preview-failed = Không thể tải xem trước bài hát
-load-charts-failed = Không thể tải biểu đồ
-no-chart-for-download = Biểu đồ này không thể tải xuống
+load-preview-failed = Không thể tải nhạc nghe trước
+load-charts-failed = Không thể tải Chart
+no-chart-for-download = Không có chart để tải
 
 load-chart-failed = Không thể tải beatmap
 
-dl-cancel = Hủy bỏ
-dl-status-fetch = Đang tải thông tin
-dl-status-song = Đang tải bài hát
-dl-status-chart = Đang tải biểu đồ
+dl-cancel = Hủy
+dl-status-fetch = Đang tìm nạp thông tin...
+dl-status-song = Đang tải nhạc
+dl-status-chart = Đang tải chart
 dl-status-extract = Đang giải nén
 dl-status-illustration = Đang tải minh hoạ
-dl-status-assets = Đang tải tài nguyên
-dl-status-saving = Đang lưu
-dl-failed = Tải xuống thất bại
-dl-success = Đã tải xuống
+dl-status-assets = Đang tải nội dung
+dl-status-saving = Đang lưu...
+dl-failed = Thất bại
+dl-success = Đã xong!
 
 guest = Khách
 
-warn-unrated = Cuộc chơi này chưa được xếp hạng
-failed-to-play = Không thể bắt đầu ở chế độ trực tuyến
-play-cancel = Hủy bỏ
-play-switch-to-offline = Chuyển sang chế độ ngoại tuyến
-switched-to-offline = Đã chuyển sang chế độ ngoại tuyến
+warn-unrated = Không tính thành tích vào tài khoản của bạn
+failed-to-play = Không thể bắt đầu trực tuyến
+play-cancel = Hủy
+play-switch-to-offline = Chuyển sang ngoại tuyến
+switched-to-offline = Đã xong
 
 delete = Xóa
 rate = Đánh giá
-exercise = Tập luyện
-offset = Điều chỉnh thời gian
+exercise = Luyện tập
+offset = Chỉnh độ lệch
+unlock = Phát video mở khóa
 
 edit-cancel = Hủy bỏ
 edit-save = Lưu
 edit-saving = Đang lưu
-edit-load-file-failed = Không thể tải file từ bên ngoài
-edit-save-failed = Lưu thất bại
+edit-load-file-failed = Không thể tải tập tin bên ngoài
+edit-save-failed = Không thể lưu
 edit-saved = Đã lưu
-edit-preview-invalid = Phạm vi thời gian xem trước không hợp lệ
-edit-tags = Chỉnh sửa thẻ
-edit-downloaded = Bạn không thể chỉnh sửa beatmap đã tải xuống
+edit-preview-invalid = Thời gian quá dài
+edit-tags = Sửa thẻ
+edit-downloaded = Bạn không thể sửa chart đã tải về
+edit-overwrite = Ghi đè
+edit-overwrite-confirm = Bạn có chắc chắn ghi đè chart này bằng chart đã nhập không? (Điều này sẽ chỉ đồng bộ hóa với thư viện trực tuyến sau khi nhấn vào "Cập nhật")
+edit-overwrite-success = Đã xong!
+edit-overwrite-failed = Không thể ghi đè
 
-edit-upload = Tải lên
+edit-upload = Tải lên thư viện
 edit-update = Cập nhật
 
-upload-login-first = Vui lòng đăng nhập trước
-upload-builtin = Beatmap mặc định không thể tải lên
-upload-downloaded = Beatmap đã tải xuống không thể tải lên
-upload-rules = Quy tắc tải lên
+upload-not-saved = Bạn chưa lưu chart, bạn có muốn lưu bây giờ không?
+upload-login-first = Hãy đăng nhập trước
+upload-builtin = Không thể tải lên beatmap tích hợp
+upload-rules = Nội quy tải lên chart
 upload-rules-content =
-  Trước khi tải lên, bạn cần xác nhận rằng:
-  1. Beatmap này được tạo bởi tôi hoặc được phê duyệt tải lên. Nếu là trường hợp thứ hai, cần được chỉ ra trong giới thiệu beatmap rằng nó đã được tải lên thay mặt cho một người;
-  2. Nếu beatmap được tạo bởi bạn, nên sử dụng hình đại diện và ID có tính nhận diện cao; Nếu ID hình đại diện bạn sử dụng trong Prpr khác rất nhiều so với nền tảng phát hành video điểm số tự làm (cụ thể là BiliBili), cần thêm chú thích;
-  2. ! Cấm vi phạm quy tắc và tải lên beatmap mà không được sự đồng ý của người chấm điểm, nếu không bạn có thể đối mặt với hình phạt cấm tải lên vĩnh viễn;
-  3. Nội dung của beatmap (bao gồm âm nhạc, minh hoạ, văn bản, vv.) Phải tuân thủ các luật và quy định khác của nước Cộng hòa Nhân dân Trung Hoa, và không được vi phạm pháp luật hoặc chứa thông tin xấu.
-upload-cancel = Hủy bỏ
-upload-confirm = Xác nhận
-uploading = Đang tải lên
-upload-chart-failed = Không thể tải lên biểu đồ
-upload-success = Tải lên thành công, vui lòng chờ xét duyệt!
-upload-failed = Tải lên thất bại
+  Trước khi tải lên thư viện trực tuyến, bạn cần xác nhận rằng:
+   1. ! Chart do tôi tạo ra, chart hợp tác cần có quyền tải lên cho TẤT CẢ các thành viên thiết kế chart, nếu không bạn có thể phải đối mặt với hình phạt cấm tải lên vĩnh viễn
+   2. Nên sử dụng hình đại diện và ID có khả năng nhận biết cao; Nếu ID hình đại diện bạn sử dụng trong Phira khá khác so với nền tảng xuất bản video điểm số tự tạo (cụ thể là BiliBili), thì cần có chú thích bổ sung, đồng thời vui lòng thêm ngôn ngữ ưa thích của bạn vào mô tả chart (nếu không phải zh-CN (tiếng Trung))
+   3. Nội dung của chart (bao gồm âm nhạc, hình minh họa, văn bản, v.v.) phải tuân thủ các luật và quy định khác của Cộng hòa Nhân dân Trung Hoa và không được vi phạm pháp luật hoặc chứa thông tin xấu
+   4. Tôi cho phép Phira sử dụng nội dung tôi cung cấp để quảng bá công khai. Bất kỳ việc sử dụng nào khác đều cần có sự cho phép bổ sung của tôi
+   5. Quyền giải thích cuối cùng của quy tắc này thuộc về TeamFlos
+uploading = Đang tải lên...
+upload-chart-failed = Không thể tải lên
+upload-success = Đã xong!, hãy đợi đến khi nó được review!
+upload-failed = Không thể tải lên.
+upload-confirm-clear-ldb = Vì tệp chart hiện tại khác với tệp chart đã tải lên nên bảng xếp hạng của chart này sẽ bị xóa sau khi tải lên, bạn có chắc chắn tiếp tục không?
+
 ldb = Bảng xếp hạng
-ldb-load-failed = Không thể tải bảng xếp hạng
-ldb-no-rank = Không có hạng
-ldb-score = Điểm số
-ldb-std = Tinh khiết
+ldb-load-failed = Không thể xem bảng xếp hạng
+ldb-no-rank = Không xếp hạng
+ldb-score = Điểm
+ldb-std = Độ C.xác
 
 info-name = Tên
-info-composer = Nhà soạn nhạc
-info-charter = Tác giả đồng thời
-info-difficulty = Độ khó
+info-composer = Nhạc
+info-charter = Charter
+info-difficulty = Cấp
 info-desc = Mô tả
 info-rating = Đánh giá
 info-type = Loại
 info-tags = Thẻ
 
-review-approve = Phê duyệt
+reviewed = Đã review
+unreviewed = Chưa review
+
+review-approve = Chấp thuận
 review-deny = Từ chối
 review-del = Xóa trực tuyến
-review-approved = Đã phê duyệt
-review-passed = Đã thông qua
-review-denied = Bị từ chối
-review-deleted =Đã xóa
+review-approved = Đã chấp thuận
+review-passed = Đã vượt qua
+review-denied = Đã từ chối
+review-deleted = Đã xóa
+review-action-failed = Không thể thực hiện hành động xem xét
+review-doing = Thực hiện hành động
+review-not-loaded = Thông tin chưa được tải, vui lòng đợi
+review-edit-tags = Sửa thẻ
+review-edit-tags-failed = Không thể sửa thẻ
+review-edit-tags-done = Thẻ đã cập nhật
 
-mods = Các Mods
-mods-autoplay = Tự động chơi
-mods-autoplay-sub = Bật tính năng này sẽ tắt tính năng tải lên bản ghi chơi
-mods-flip-x = Lật X
-mods-flip-x-sub = Lật theo trục X
-mods-fade-out = Biến mờ
-mods-fade-out-sub = Các nốt biến mất khi chúng tiếp cận đường thẳng
+mods = Mods
+mods-autoplay = Autoplays
+mods-autoplay-sub = Chart sẽ tự chơi, nhưng không tính thành tích
+mods-flip-x = Flip X
+mods-flip-x-sub = Lật ngược chart theo trục X
+mods-fade-out = Mờ dần
+mods-fade-out-sub = Notes biến mất khi nó đi gần tới line
 
-rate-failed = Đánh giá thất bại
-rate-done = Đánh giá thành công
+rate-failed = Thất bại
+rate-done = Đã đánh giá!
 
-need-update = Cập nhật cần thiết
-need-update-info-only-content = Thông tin về beatmap đã được cập nhật. Bạn có muốn đồng bộ hóa cập nhật?
-need-update-content = Beatmap này đã được cập nhật. Bạn phải đồng bộ phiên bản cục bộ của mình trước khi tải lên bản ghi. Bạn có muốn làm điều này ngay bây giờ?
+need-update = Cần cập nhật
+need-update-info-only-content = thông tin của chart đã được cập nhật. Bạn có muốn đồng bộ hóa bản cập nhật không?
+need-update-content = Beatmap này đã được cập nhật. Bạn phải đồng bộ hóa phiên bản đã tải của mình trước khi tải Beatmap lên. Bạn có muốn làm điều đó bây giờ không?
 
-request-failed = Yêu cầu thất bại
+request-failed = Yêu cầu không thành công
 
-stabilize = Ổn định
-stabilize-warn = Người dùng thông thường chỉ có thể yêu cầu ổn định cho beatmap một lần trong vòng 3 ngày. Nếu bạn có beatmap được ổn định, khoảng thời gian sẽ được giảm xuống còn 1 ngày.
-stabilize-requested = Đã gửi yêu cầu ổn định
-stabilize-failed = Ổn định thất bại
-stabilize-approve = Phê duyệt ổn định
-stabilize-approve-ranked = Phê duyệt được xếp hạng
-stabilize-deny = Từ chối ổn định
-stabilize-approved = Đã phê duyệt
-stabilize-approved-passed = Đã phê duyệt, beatmap đã được ổn định
-stabilize-denied = Từ chối
-stabilize-denied-passed = Từ chối, beatmap đã bị từ chối
+stabilize = Duyệt
+stabilize-warn = Người dùng bình thường chỉ có thể yêu cầu duyệt beatmap 3 ngày một lần. Nếu bạn có beatmap đã được duyệt, khoảng thời gian sẽ giảm xuống còn 1 ngày.
+stabilize-requested = Yêu cầu duyệt đã được gửi
+stabilize-failed = Không thể gửi yêu cầu duyệt
+stabilize-approve = Phê duyệt đặc biệt
+stabilize-approve-ranked = Đã duyệt
+stabilize-comment = Duyệt bình luận
+stabilize-commented = Đã duyệt bình luận
+stabilize-deny = Hủy duyệt
+stabilize-approved = Đã chấp nhận
+stabilize-approved-passed = Đã chấp nhận, chart đã được duyệt
+stabilize-denied = Từ chối duyệt
+stabilize-denied-passed = Chart của bạn đã bị từ chối

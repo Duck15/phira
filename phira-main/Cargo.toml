@@ -1,7 +1,8 @@
 [package]
 name = "phira-main"
-version = "0.3.3"
+version = "0.6.2"
 edition = "2021"
+license = "GPL-3.0-only"
 
 [dependencies]
 phira = { path = "../phira" }

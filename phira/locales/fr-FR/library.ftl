@@ -1,7 +1,8 @@
 
+label = BIBLIOTHÈQUE
+
 local = Local
 popular = Populaire
-list-empty = Rien ici
 
 page = Page { $current } / { $total }
 prev-page = Page précédente
@@ -13,3 +14,5 @@ failed-to-load-online = Échec du chargement des partitions en ligne
 import = Importer
 
 offline-mode = Impossible de charger les partitions en ligne en mode hors-ligne
+
+must-login = Vous devez vous connecter pour voir les partitions en ligne

@@ -1,24 +1,32 @@
 mod model;
 pub use model::*;
 
-use crate::{get_data, get_data_mut, save_data};
+use crate::{anti_addiction_action, get_data, get_data_mut, save_data};
 use anyhow::{anyhow, bail, Context, Result};
 use arc_swap::ArcSwap;
 use once_cell::sync::Lazy;
 use prpr::{l10n::LANG_IDENTS, scene::SimpleRecord};
-use reqwest::{header, Method, RequestBuilder, Response, StatusCode};
+use reqwest::{header, ClientBuilder, Method, RequestBuilder, Response, StatusCode};
 use serde::{Deserialize, Serialize};
 use serde_json::json;
 use std::{borrow::Cow, collections::HashMap, marker::PhantomData, sync::Arc};
 
 pub static CLIENT_TOKEN: Lazy<ArcSwap<Option<String>>> = Lazy::new(|| ArcSwap::from_pointee(None));
 
-static CLIENT: Lazy<ArcSwap<reqwest::Client>> = Lazy::new(|| ArcSwap::from_pointee(reqwest::Client::new()));
+static CLIENT: Lazy<ArcSwap<reqwest::Client>> = Lazy::new(|| ArcSwap::from_pointee(basic_client_builder().build().unwrap()));
 
 pub struct Client;
 
 // const API_URL: &str = "http://localhost:2924";
 const API_URL: &str = "https://api.phira.cn";
+
+pub fn basic_client_builder() -> ClientBuilder {
+    let mut builder = reqwest::ClientBuilder::new();
+    if get_data().accept_invalid_cert {
+        builder = builder.danger_accept_invalid_certs(true);
+    }
+    builder
+}
 
 fn build_client(access_token: Option<&str>) -> Result<Arc<reqwest::Client>> {
     CLIENT_TOKEN.store(access_token.map(str::to_owned).into());
@@ -29,7 +37,7 @@ fn build_client(access_token: Option<&str>) -> Result<Arc<reqwest::Client>> {
         auth_value.set_sensitive(true);
         headers.insert(header::AUTHORIZATION, auth_value);
     }
-    Ok(reqwest::ClientBuilder::new().default_headers(headers).build()?.into())
+    Ok(basic_client_builder().default_headers(headers).build()?.into())
 }
 
 pub fn set_access_token_sync(access_token: Option<&str>) -> Result<()> {
@@ -137,7 +145,6 @@ impl Client {
             let status = resp.status().as_str().to_owned();
             let text = resp.text().await.context("failed to receive text")?;
             if let Ok(what) = serde_json::from_str::<serde_json::Value>(&text) {
-                println!("{:?}", what);
                 if let Some(detail) = what["detail"].as_str() {
                     bail!("request failed ({status}): {detail}");
                 }
@@ -169,14 +176,17 @@ impl Client {
         Ok(())
     }
 
-    pub async fn login<'a>(params: LoginParams<'a>) -> Result<()> {
+    pub async fn login(params: LoginParams<'_>) -> Result<()> {
         #[derive(Deserialize)]
         #[serde(rename_all = "camelCase")]
         struct Resp {
+            id: i32,
             token: String,
             refresh_token: String,
         }
         let resp: Resp = recv_raw(Self::post("/login", &params)).await?.json().await?;
+
+        anti_addiction_action("startup", Some(format!("phira-{}", resp.id)));
 
         set_access_token(&resp.token).await?;
         get_data_mut().tokens = Some((resp.token, resp.refresh_token));

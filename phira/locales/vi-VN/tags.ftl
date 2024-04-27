@@ -1,18 +1,22 @@
 
-filter = Lọc theo nhãn
-edit = Chỉnh sửa nhãn
+filter = Lọc theo thẻ
+edit = Sửa thẻ
 
-invalid-tag = Nhãn không hợp lệ
+invalid-tag = Thẻ không hợp lệ
 
-wanted = Đã muốn
+wanted = Muốn
 unwanted = Không muốn
 
 cancel = Hủy
-confirm = Xác nhận
+confirm = OK
 
-filter-by-rating = Lọc theo xếp hạng
+filter-by-rating = Lọc theo đánh giá
 
-regular = Thường
-troll = Trò đùa
-plain = Đơn giản
-visual = Hình ảnh
+regular = Regular
+troll = Trôn
+plain = Plain
+visual = Visual
+
+filter-me = Đăng bởi tôi
+filter-unreviewed = Chưa được duyệt
+filter-stabilize = Đang yêu cầu duyệt

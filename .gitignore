@@ -9,7 +9,6 @@ inner.rs
 /assets/texture
 /wbindgen
 /dist
-Cargo.lock
 /conf.yml
 /cache
 /data
@@ -18,6 +17,11 @@ Cargo.lock
 /assets/char.png
 /assets/background.jpg
 /assets/res
+/test.uml
+/monitor-config.yml
+/.vscode
+
+/prpr-avc/static-lib
 
 # Mac
 
@@ -39,3 +43,4 @@ Cargo.lock
 # Test
 
 /log*
+/build_event_debug.sh

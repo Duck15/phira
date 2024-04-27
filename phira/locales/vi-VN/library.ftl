@@ -1,15 +1,18 @@
 
-local = Cục bộ
-popular = Phổ biến
-list-empty = Không có gì ở đây
+label = THƯ VIỆN
+
+local = Đã tải
+popular = Thịnh hành
 
 page = Trang { $current } / { $total }
-prev-page = Trang trước
-next-page = Trang kế tiếp
+prev-page = Trước
+next-page = Sau
 
-not-opened = Chưa có sẵn
-failed-to-load-online = Tải biểu đồ trực tuyến thất bại
+not-opened = Không có sẵn
+failed-to-load-online = Không thể tải thư viện trực tuyến
 
 import = Nhập
 
-offline-mode = Không thể tải beatmap trực tuyến ở chế độ ngoại tuyến
+offline-mode = Không thể tải thư viện trong chế độ Offline
+
+must-login = Bạn phải đăng nhập để xem thư viện trực tuyến

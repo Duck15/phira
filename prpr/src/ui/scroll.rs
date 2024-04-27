@@ -1,11 +1,10 @@
-use super::Ui;
+use super::{clip_rounded_rect, Ui};
 use crate::core::{Matrix, Point, Vector};
 use macroquad::prelude::{Rect, Touch, TouchPhase, Vec2};
 use nalgebra::Translation2;
 use std::collections::VecDeque;
 
 const THRESHOLD: f32 = 0.03;
-const EXTEND: f32 = 0.33;
 
 pub struct VelocityTracker {
     movements: VecDeque<(f32, Point)>,
@@ -18,12 +17,6 @@ impl VelocityTracker {
         Self {
             movements: VecDeque::with_capacity(Self::RECORD_MAX),
         }
-    }
-
-    pub fn new(time: f32, point: Point) -> Self {
-        let mut res = Self::empty();
-        res.push(time, point);
-        res
     }
 
     pub fn reset(&mut self) {
@@ -94,7 +87,7 @@ pub struct Scroller {
     pub pulled_down: bool,
     frame_touched: bool,
     pub step: f32,
-    pub last_step: usize,
+    pub goto: Option<f32>,
 }
 
 impl Default for Scroller {
@@ -104,6 +97,8 @@ impl Default for Scroller {
 }
 
 impl Scroller {
+    pub const EXTEND: f32 = 0.33;
+
     pub fn new() -> Self {
         Self {
             touch: None,
@@ -117,7 +112,7 @@ impl Scroller {
             pulled_down: false,
             frame_touched: true,
             step: f32::NAN,
-            last_step: 0,
+            goto: None,
         }
     }
 
@@ -125,10 +120,20 @@ impl Scroller {
         self.touch = None;
     }
 
+    pub fn goto_step(&mut self, index: usize) {
+        self.goto = Some(self.step * index as f32);
+    }
+
+    pub fn reset(&mut self) {
+        self.offset = 0.;
+        self.speed = 0.;
+    }
+
     pub fn touch(&mut self, id: u64, phase: TouchPhase, val: f32, t: f32) -> bool {
         match phase {
             TouchPhase::Started => {
                 if 0. <= val && val < self.bound {
+                    self.goto = None;
                     self.tracker.reset();
                     self.tracker.push(t, Point::new(val, 0.));
                     self.speed = 0.;
@@ -144,7 +149,7 @@ impl Scroller {
                             *unlock = true;
                         }
                         if *unlock {
-                            self.offset = (*st_off + (*st - val)).clamp(-EXTEND, self.size + EXTEND);
+                            self.offset = (*st_off + (*st - val)).clamp(-Self::EXTEND, self.size + Self::EXTEND);
                         }
                         self.frame_touched = true;
                     }
@@ -158,10 +163,10 @@ impl Scroller {
                         self.speed = -speed * 0.4;
                         self.last_time = t;
                     }
-                    if self.offset <= -EXTEND * 0.7 {
+                    if self.offset <= -Self::EXTEND * 0.7 {
                         self.pulled = true;
                     }
-                    if self.offset >= self.size + EXTEND * 0.4 {
+                    if self.offset >= self.size + Self::EXTEND * 0.4 {
                         self.pulled_down = true;
                     }
                     let res = self.touch.map(|it| it.3).unwrap_or_default();
@@ -182,7 +187,7 @@ impl Scroller {
         // }
         let dt = t - self.last_time;
         self.offset += self.speed * dt;
-        const K: f32 = 3.;
+        const K: f32 = 4.;
         let unlock = self.touch.map_or(false, |it| it.3);
         if unlock {
             self.speed *= (0.5_f32).powf((t - self.last_time) / 0.4);
@@ -197,7 +202,7 @@ impl Scroller {
             if !self.step.is_nan() {
                 let lower = (self.offset / self.step).floor() * self.step;
                 let upper = lower + self.step;
-                let range = 0.0..self.size;
+                let range = -1e-3..(self.size + 1e-3);
                 if range.contains(&lower) && to.map_or(true, |it| (it - self.offset).abs() >= (lower - self.offset).abs()) {
                     to = Some(lower);
                 }
@@ -205,14 +210,21 @@ impl Scroller {
                     to = Some(upper);
                 }
             }
-            if let Some(to) = to {
+            if let Some(to) = self.goto {
+                self.speed = (to - self.offset) * K * 2.;
+                if (to - self.offset).abs() < 0.01 {
+                    self.goto = None;
+                }
+            } else if let Some(to) = to {
                 self.speed = (to - self.offset) * K;
             }
         }
-        if !unlock && self.offset < 0. {
+        if !unlock && self.offset < -1e-3 {
             self.speed = -self.offset * K;
-        } else if !unlock && self.offset > self.size {
+            self.goto = None;
+        } else if !unlock && self.offset > self.size + 1e-3 {
             self.speed = (self.size - self.offset) * K;
+            self.goto = None;
         } else {
             self.speed *= (0.5_f32).powf((t - self.last_time) / 0.4);
         }
@@ -231,11 +243,19 @@ impl Scroller {
     }
 }
 
+pub enum ClipType {
+    None,
+    Scissor,
+    Clip,
+}
+
 pub struct Scroll {
     pub x_scroller: Scroller,
     pub y_scroller: Scroller,
     size: (f32, f32),
     matrix: Option<Matrix>,
+    horizontal: bool,
+    clip: ClipType,
 }
 
 impl Default for Scroll {
@@ -251,7 +271,19 @@ impl Scroll {
             y_scroller: Scroller::new(),
             size: (2., 2.),
             matrix: None,
+            horizontal: false,
+            clip: ClipType::Scissor,
         }
+    }
+
+    pub fn use_clip(mut self, clip: ClipType) -> Self {
+        self.clip = clip;
+        self
+    }
+
+    pub fn horizontal(mut self) -> Self {
+        self.horizontal = true;
+        self
     }
 
     pub fn set_offset(&mut self, x: f32, y: f32) {
@@ -266,13 +298,15 @@ impl Scroll {
         if touch.phase == TouchPhase::Started && (pt.x < 0. || pt.y < 0. || pt.x > self.size.0 || pt.y > self.size.1) {
             return false;
         }
-        // self.x_scroller.touch(touch.id, touch.phase, pt.x, t) |
-        self.y_scroller.touch(touch.id, touch.phase, pt.y, t)
+        if self.horizontal {
+            self.x_scroller.touch(touch.id, touch.phase, pt.x, t)
+        } else {
+            self.y_scroller.touch(touch.id, touch.phase, pt.y, t)
+        }
     }
 
     pub fn update(&mut self, t: f32) {
-        self.x_scroller.update(t);
-        self.y_scroller.update(t);
+        (if self.horizontal { &mut self.x_scroller } else { &mut self.y_scroller }).update(t)
     }
 
     pub fn contains(&self, touch: &Touch) -> bool {
@@ -284,10 +318,13 @@ impl Scroll {
     }
 
     pub fn render(&mut self, ui: &mut Ui, content: impl FnOnce(&mut Ui) -> (f32, f32)) {
-        self.matrix = Some(ui.get_matrix().try_inverse().unwrap());
-        ui.scissor(Some(Rect::new(0., 0., self.size.0, self.size.1)));
-        let s = ui.with(Translation2::new(-self.x_scroller.offset, -self.y_scroller.offset).to_homogeneous(), content);
-        ui.scissor(None);
+        self.matrix = Some(ui.transform.try_inverse().unwrap());
+        let func = |ui: &mut Ui| ui.with(Translation2::new(-self.x_scroller.offset, -self.y_scroller.offset).to_homogeneous(), content);
+        let s = match self.clip {
+            ClipType::None => func(ui),
+            ClipType::Scissor => ui.scissor(self.rect(), func),
+            ClipType::Clip => clip_rounded_rect(ui, self.rect(), 0., func),
+        };
         self.x_scroller.size((s.0 - self.size.0).max(0.));
         self.y_scroller.size((s.1 - self.size.1).max(0.));
     }

@@ -4,21 +4,22 @@ mod ending;
 pub use ending::{EndingScene, RecordUpdateState};
 
 mod game;
-pub use game::{GameMode, GameScene, SimpleRecord, FFMPEG_PATH};
+pub use game::{GameMode, GameScene, SimpleRecord};
 
 mod loading;
-pub use loading::{BasicPlayer, LoadingScene};
+pub use loading::{BasicPlayer, LoadingScene, UpdateFn, UploadFn};
 
 use crate::{
-    ext::{draw_image, poll_future, screen_aspect, LocalTask, SafeTexture, ScaleType},
+    ext::{draw_image, screen_aspect, LocalTask, SafeTexture, ScaleType},
     judge::Judge,
     time::TimeManager,
-    ui::{BillBoard, Dialog, Message, MessageHandle, MessageKind, Ui},
+    ui::{BillBoard, Dialog, Message, MessageHandle, MessageKind, TextPainter, Ui},
 };
 use anyhow::{Error, Result};
 use cfg_if::cfg_if;
 use macroquad::prelude::*;
-use std::{any::Any, cell::RefCell, future::Future, sync::Mutex};
+use std::{any::Any, cell::RefCell, sync::Mutex};
+use tracing::warn;
 
 #[derive(Default)]
 pub enum NextScene {
@@ -40,6 +41,7 @@ thread_local! {
 
 #[inline]
 pub fn show_error(error: Error) {
+    warn!("show error: {error:?}");
     Dialog::error(error).show();
 }
 
@@ -117,7 +119,15 @@ pub static INPUT_TEXT: Mutex<(Option<String>, Option<String>)> = Mutex::new((Non
 #[cfg(not(target_arch = "wasm32"))]
 pub static CHOSEN_FILE: Mutex<(Option<String>, Option<String>)> = Mutex::new((None, None));
 
-pub fn request_input(id: impl Into<String>, #[allow(unused_variables)] text: &str) {
+#[inline]
+pub fn request_input(id: impl Into<String>, text: &str) {
+    request_input_full(id, text, false);
+}
+#[inline]
+pub fn request_password(id: impl Into<String>, text: &str) {
+    request_input_full(id, text, true);
+}
+pub fn request_input_full(id: impl Into<String>, #[allow(unused_variables)] text: &str, #[allow(unused_variables)] is_password: bool) {
     *INPUT_TEXT.lock().unwrap() = (Some(id.into()), None);
     cfg_if! {
         if #[cfg(target_os = "android")] {
@@ -168,6 +178,9 @@ pub fn request_input(id: impl Into<String>, #[allow(unused_variables)] text: &st
                 let _: () = msg_send![alert, addTextFieldWithConfigurationHandler: ConcreteBlock::new(move |field: ObjcId| {
                     let _: () = msg_send![field, setPlaceholder: str_to_ns(ttl!("input-hint"))];
                     let _: () = msg_send![field, setText: str_to_ns(&text)];
+                    if is_password {
+                        let _: () = msg_send![field, setSecureTextEntry: runtime::YES];
+                    }
                 }).copy()];
 
                 let _: () = msg_send![
@@ -251,7 +264,7 @@ pub fn request_file(id: impl Into<String>) {
                         let tp: ObjcId = msg_send![tp_cls, typeWithFilenameExtension: str_to_ns(e)];
                         std::mem::transmute::<_, ShareId<NSObject>>(ShareId::from_ptr(tp))
                     };
-                    let types = NSArray::from_slice(&[ext("zip"), ext("pez"), ext("jpg"), ext("png"), ext("jpeg")]);
+                    let types = NSArray::from_slice(&[ext("zip"), ext("pez"), ext("jpg"), ext("png"), ext("jpeg"), ext("json"), ext("mp3"), ext("ogg")]);
                     let types: ObjcId = std::mem::transmute(types);
                     msg_send![picker, initForOpeningContentTypes: types]
                 } else {
@@ -272,7 +285,7 @@ pub fn request_file(id: impl Into<String>) {
                     completion: 0 as ObjcId
                 ];
             }
-        } else {
+        } else { // desktop
             CHOSEN_FILE.lock().unwrap().1 = rfd::FileDialog::new().pick_file().map(|it| it.display().to_string());
         }
     }
@@ -334,8 +347,9 @@ pub struct Main {
     paused: bool,
     last_update_time: f64,
     should_exit: bool,
-    pub show_billboard: bool,
+    pub top_level: bool,
     touches: Option<Vec<Touch>>,
+    pub viewport: Option<(i32, i32, i32, i32)>,
 }
 
 impl Main {
@@ -358,8 +372,9 @@ impl Main {
             paused: false,
             last_update_time,
             should_exit: false,
-            show_billboard: true,
+            top_level: true,
             touches: None,
+            viewport: None,
         })
     }
 
@@ -438,7 +453,7 @@ impl Main {
                         match self.scenes.last_mut().unwrap().touch(&mut self.tm, touch) {
                             Ok(val) => !val,
                             Err(err) => {
-                                warn!("failed to handle touch: {:?}", err);
+                                warn!(?err, "failed to handle touch");
                                 last_err = Some(err);
                                 false
                             }
@@ -459,37 +474,36 @@ impl Main {
                 dialog.update(self.last_update_time as _);
             }
         });
-        self.scenes.last_mut().unwrap().update(&mut self.tm)
+        self.scenes.last_mut().unwrap().update(&mut self.tm)?;
+        Ok(())
     }
 
-    pub fn render(&mut self, ui: &mut Ui) -> Result<()> {
+    pub fn render(&mut self, painter: &mut TextPainter) -> Result<()> {
         if self.paused {
             return Ok(());
         }
+        let mut ui = Ui::new(painter, self.viewport);
         ui.set_touches(self.touches.take().unwrap());
         ui.scope(|ui| self.scenes.last_mut().unwrap().render(&mut self.tm, ui))?;
-        if self.show_billboard {
+        if self.top_level {
             push_camera_state();
-            set_camera(&Camera2D {
-                zoom: vec2(1., -screen_width() / screen_height()),
-                ..Default::default()
-            });
+            set_camera(&ui.camera());
             let mut gl = unsafe { get_internal_gl() };
             gl.flush();
-            gl.quad_gl.render_pass(None);
-            gl.quad_gl.viewport(None);
+            // gl.quad_gl.render_pass(None);
+            // gl.quad_gl.viewport(None);
             BILLBOARD.with(|it| {
                 let mut guard = it.borrow_mut();
                 let t = guard.1.now() as f32;
-                guard.0.render(ui, t);
+                guard.0.render(&mut ui, t);
+            });
+            DIALOG.with(|it| {
+                if let Some(dialog) = it.borrow_mut().as_mut() {
+                    dialog.render(&mut ui, self.tm.now() as _);
+                }
             });
             pop_camera_state();
         }
-        DIALOG.with(|it| {
-            if let Some(dialog) = it.borrow_mut().as_mut() {
-                dialog.render(ui, self.tm.now() as _);
-            }
-        });
         Ok(())
     }
 
@@ -515,49 +529,4 @@ fn draw_background(tex: Texture2D) {
     draw_rectangle(-1., -top, 2., top * 2., Color::new(0., 0., 0., 0.3));
 }
 
-fn draw_illustration(tex: Texture2D, x: f32, y: f32, w: f32, h: f32, color: Color) -> Rect {
-    let scale = 0.076;
-    let w = scale * 13. * w;
-    let h = scale * 7. * h;
-    let r = Rect::new(x - w / 2., y - h / 2., w, h);
-    let tr = {
-        let exp = w / h;
-        let act = tex.width() / tex.height();
-        if exp > act {
-            let h = act / exp;
-            Rect::new(0., 0.5 - h / 2., 1., h)
-        } else {
-            let w = exp / act;
-            Rect::new(0.5 - w / 2., 0., w, 1.)
-        }
-    };
-    crate::ext::draw_parallelogram(r, Some((tex, tr)), color, true);
-    r
-}
-
-thread_local! {
-    static LOAD_SCENE_TASK: RefCell<LocalTask<Result<NextScene>>> = RefCell::new(None);
-}
-
-pub fn load_scene<T: Scene + 'static>(future: impl Future<Output = Result<T>> + 'static) {
-    LOAD_SCENE_TASK.with(|it| *it.borrow_mut() = Some(Box::pin(async move { future.await.map(|scene| NextScene::Overlay(Box::new(scene))) })));
-}
-
-pub fn loading_scene() -> bool {
-    LOAD_SCENE_TASK.with(|it| it.borrow().is_some())
-}
-
-pub fn take_loaded_scene() -> Option<Result<NextScene>> {
-    LOAD_SCENE_TASK.with(|it| {
-        let mut guard = it.borrow_mut();
-        if let Some(task) = guard.as_mut() {
-            let res = poll_future(task.as_mut());
-            if res.is_some() {
-                *guard = None;
-            }
-            res
-        } else {
-            None
-        }
-    })
-}
+pub type LocalSceneTask = LocalTask<Result<NextScene>>;

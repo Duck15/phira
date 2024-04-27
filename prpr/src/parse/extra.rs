@@ -1,14 +1,15 @@
+crate::tl_file!("parser" ptl);
+
+use super::RPE_TWEEN_MAP;
 use crate::{
     core::{Anim, BpmList, ChartExtra, ClampedTween, Effect, Keyframe, StaticTween, Triple, Tweenable, Uniform, Video, EPS},
     ext::ScaleType,
     fs::FileSystem,
 };
-use anyhow::{anyhow, Context, Result};
+use anyhow::{Context, Result};
 use macroquad::prelude::{Color, Vec2};
 use serde::Deserialize;
-use std::{collections::HashMap, path::Path, rc::Rc};
-
-use super::RPE_TWEEN_MAP;
+use std::{collections::HashMap, rc::Rc};
 
 // serde is weird...
 fn f32_zero() -> f32 {
@@ -160,42 +161,47 @@ async fn parse_effect(r: &mut BpmList, rpe: ExtEffect, fs: &mut dyn FileSystem) 
     Effect::new(
         range,
         if let Some(path) = rpe.shader.strip_prefix('/') {
-            string = String::from_utf8(fs.load_file(path).await?).with_context(|| format!("Cannot load shader from {path}"))?;
+            string = String::from_utf8(fs.load_file(path).await?).with_context(|| ptl!("shader-load-failed", "path" => path))?;
             &string
         } else {
-            Effect::get_preset(&rpe.shader).ok_or_else(|| anyhow!("Cannot find preset shader {}", rpe.shader))?
+            Effect::get_preset(&rpe.shader).ok_or_else(|| ptl!(err "shader-not-found", "shader" => rpe.shader))?
         },
         vars,
         rpe.global,
     )
 }
 
-pub async fn parse_extra(source: &str, fs: &mut dyn FileSystem, ffmpeg: Option<&Path>) -> Result<ChartExtra> {
-    let ext: Extra = serde_json::from_str(source).context("Failed to parse JSON")?;
+pub async fn parse_extra(source: &str, fs: &mut dyn FileSystem) -> Result<ChartExtra> {
+    let ext: Extra = serde_json::from_str(source).with_context(|| ptl!("json-parse-failed"))?;
     let mut r: BpmList = ext.bpm.into();
     let mut effects = Vec::new();
     let mut global_effects = Vec::new();
     for (id, effect) in ext.effects.into_iter().enumerate() {
-        (if effect.global { &mut global_effects } else { &mut effects })
-            .push(parse_effect(&mut r, effect, fs).await.with_context(|| format!("In effect #{id}"))?);
+        (if effect.global { &mut global_effects } else { &mut effects }).push(
+            parse_effect(&mut r, effect, fs)
+                .await
+                .with_context(|| ptl!("effect-location", "id" => id))?,
+        );
     }
     let mut videos = Vec::new();
-    if let Some(ffmpeg) = ffmpeg {
-        for video in ext.videos {
-            videos.push(
-                Video::new(
-                    ffmpeg,
-                    fs.load_file(&video.path)
-                        .await
-                        .with_context(|| format!("Failed to read video from {}", video.path))?,
-                    r.time(&video.time),
-                    video.scale,
-                    video.alpha.into(&mut r, Some(1.)),
-                    video.dim.into(&mut r, Some(0.)),
-                )
-                .with_context(|| format!("Failed to load video from {}", video.path))?,
-            );
-        }
+    #[cfg(feature = "video")]
+    for video in ext.videos {
+        videos.push(
+            Video::new(
+                fs.load_file(&video.path)
+                    .await
+                    .with_context(|| ptl!("video-load-failed", "path" => video.path.clone()))?,
+                r.time(&video.time),
+                video.scale,
+                video.alpha.into(&mut r, Some(1.)),
+                video.dim.into(&mut r, Some(0.)),
+            )
+            .with_context(|| ptl!("video-load-failed", "path" => video.path))?,
+        );
+    }
+    #[cfg(not(feature = "video"))]
+    if !ext.videos.is_empty() {
+        tracing::warn!("video is disabled in this build");
     }
     Ok(ChartExtra {
         effects,

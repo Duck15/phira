@@ -28,6 +28,7 @@ delete = Delete
 rate = Rate
 exercise = Exercise
 offset = Adjust offset
+unlock = Play unlock video
 
 edit-cancel = Cancel
 edit-save = Save
@@ -38,26 +39,30 @@ edit-saved = Saved
 edit-preview-invalid = Preview time out of bounds
 edit-tags = Edit tags
 edit-downloaded = You can't edit downloaded chart
+edit-overwrite = Overwrite
+edit-overwrite-confirm = Are you sure to overwrite this chart with the imported one? (This will only sync to online platform after clicking "Update")
+edit-overwrite-success = Overwritten
+edit-overwrite-failed = Failed to overwrite
 
 edit-upload = Upload
 edit-update = Update
 
+upload-not-saved = You haven't saved the chart, do you want to save it now?
 upload-login-first = Please login first
 upload-builtin = Built-in beatmaps cannot be uploaded
-upload-downloaded = Downloaded beatmaps cannot be uploaded
 upload-rules = Upload rules
 upload-rules-content =
   Before uploading, you need to confirm that:
-  1. ! The beatmap is created by me.
-  2. It is recommended to use a highly recognizable avatar and ID; If the avatar ID you use in Phira is quite different from the self-made score video publishing platform (specifically, BiliBili), additional annotations are required;
-  3. ! It is forbidden to violate the rules and upload the beatmap without the consent of the scorer, otherwise you may face the penalty of permanent ban on uploading;
-  4. The content of the beatmap (including music, illustrations, text, etc.) must comply with other laws and regulations of the People's Republic of China, and must not violate the law or contain bad information.
-upload-cancel = Cancel
-upload-confirm = Confirm
+  1. ! The beatmap is created by me, collaborative chart needs upload permission ALL chart designers, otherwise you may face the penalty of permanent ban on uploading
+  2. It is recommended to use a highly recognizable avatar and ID; If the avatar ID you use in Phira is quite different from the self-made score video publishing platform (specifically, BiliBili), additional annotations are required, also please add your favored language in the chart description (if not zh-CN)
+  3. The content of the beatmap (including music, illustrations, text, etc.) must comply with other laws and regulations of the People's Republic of China, and must not violate the law or contain bad information
+  4. I authorize the use of the content I provide for public promotion by Phira. Any other use requires my additional permission
+  5. The final interpretation rights of this rule belong to TeamFlos
 uploading = Uploading
 upload-chart-failed = Failed to upload beatmap
 upload-success = Uploaded successfully, please wait for review!
 upload-failed = Upload failed
+upload-confirm-clear-ldb = Since the current chart file is different from the remote chart file, the leaderboard of this chart will be cleared after uploading, are you sure to continue?
 
 ldb = Leaderboard
 ldb-load-failed = Failed to load leaderboard
@@ -73,6 +78,9 @@ info-desc = Description
 info-rating = Rating
 info-type = Type
 info-tags = Tags
+
+reviewed = Reviewed
+unreviewed = Unreviewed
 
 review-approve = Approve
 review-deny = Deny
@@ -104,3 +112,17 @@ need-update-info-only-content = The info of beatmap has updated. Do you want to 
 need-update-content = This beatmap has updated. You must sync your local version before uploading record. Do you want to do it now?
 
 request-failed = Request failed
+
+stabilize = Stabilize
+stabilize-warn = Normal user can only request to stabilize beatmap once per 3 days. If you have beatmaps that are stabilized, the interval is reduced to 1 day.
+stabilize-requested = Stablizing request sent
+stabilize-failed = Stabilize failed
+stabilize-approve = Approve special
+stabilize-approve-ranked = Approve stable
+stabilize-comment = Stable comment
+stabilize-commented = Commented
+stabilize-deny = Deny stable
+stabilize-approved = Approved
+stabilize-approved-passed = Approved, the beatmap is stablized
+stabilize-denied = Denied
+stabilize-denied-passed = Denied, the beatmap is rejected

@@ -1,6 +1,7 @@
+
 input = Nhập
-input-msg = Vui lòng nhập văn bản
+input-msg = Hãy nhập văn bản
 input-hint = Văn bản
 
-read-file-failed = Không đọc được tệp tin
-pasted = Đã dán từ bảng tạm
+read-file-failed = Đọc tập tin thất bại
+pasted = Đã dán từ bảng nhớ tạm

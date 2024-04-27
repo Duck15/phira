@@ -29,16 +29,31 @@ mod object;
 pub use object::{CtrlObject, Object};
 
 mod render;
-pub use render::{copy_fbo, MSRenderTarget};
+pub use render::{copy_fbo, internal_id, MSRenderTarget};
 
 mod resource;
 pub use resource::{NoteStyle, ParticleEmitter, ResPackInfo, Resource, ResourcePack, DPI_VALUE};
 
+mod smooth;
+pub use smooth::Smooth;
+
 mod tween;
 pub use tween::{easing_from, BezierTween, ClampedTween, StaticTween, TweenFunction, TweenId, TweenMajor, TweenMinor, Tweenable, TWEEN_FUNCTIONS};
 
+#[cfg(feature = "video")]
 mod video;
+#[cfg(feature = "video")]
+pub use prpr_avc::demux_audio;
+#[cfg(feature = "video")]
 pub use video::Video;
+
+use crate::ui::TextPainter;
+use std::cell::RefCell;
+
+thread_local! {
+    pub static PGR_FONT: RefCell<Option<TextPainter>> = RefCell::default();
+    pub static BOLD_FONT: RefCell<Option<TextPainter>> = RefCell::default();
+}
 
 pub fn init_assets() {
     if let Ok(mut exe) = std::env::current_exe() {

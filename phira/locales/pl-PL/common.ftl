@@ -10,6 +10,6 @@ release-to-refresh = Puść, aby odświeżyć
 switch-on = Wł.
 switch-off = Wył.
 
-chart-ranked = Rankingowa
-chart-special = Specjalna
-chart-unstable = Nieustabilizowana
+chart-ranked = Rankingowe
+chart-special = Specjalne
+chart-unstable = Niestabilne

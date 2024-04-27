@@ -14,6 +14,9 @@ pub mod task;
 pub mod time;
 pub mod ui;
 
+#[cfg(feature = "log")]
+pub mod log;
+
 #[cfg(feature = "closed")]
 pub mod inner;
 
@@ -25,7 +28,7 @@ pub use scene::Main;
 pub fn build_conf() -> macroquad::window::Conf {
     macroquad::window::Conf {
         window_title: "Phira".to_string(),
-        window_width: 1080,
+        window_width: 973,
         window_height: 608,
         ..Default::default()
     }

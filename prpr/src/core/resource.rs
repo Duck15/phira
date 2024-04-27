@@ -338,7 +338,7 @@ pub struct Resource {
     pub info: ChartInfo,
     pub aspect_ratio: f32,
     pub dpi: u32,
-    pub last_screen_size: (u32, u32),
+    pub last_vp: (i32, i32, i32, i32),
     pub note_width: f32,
 
     pub time: f32,
@@ -351,7 +351,6 @@ pub struct Resource {
     pub background: SafeTexture,
     pub illustration: SafeTexture,
     pub icons: [SafeTexture; 8],
-    pub challenge_icons: [SafeTexture; 6],
     pub res_pack: ResourcePack,
     pub player: SafeTexture,
     pub icon_back: SafeTexture,
@@ -396,26 +395,6 @@ impl Resource {
             "rank/V.png",
             "rank/FC.png",
             "rank/phi.png"
-        ])
-    }
-
-    pub async fn load_challenge_icons() -> Result<[SafeTexture; 6]> {
-        macro_rules! loads {
-            ($($path:literal),*) => {
-                [$(loads!(@detail $path)),*]
-            };
-
-            (@detail $path:literal) => {
-                Texture2D::from_image(&load_image($path).await?).into()
-            };
-        }
-        Ok(loads![
-            "rank/white.png",
-            "rank/green.png",
-            "rank/blue.png",
-            "rank/red.png",
-            "rank/golden.png",
-            "rank/rainbow.png"
         ])
     }
 
@@ -464,7 +443,7 @@ impl Resource {
             info,
             aspect_ratio,
             dpi: DPI_VALUE.load(std::sync::atomic::Ordering::SeqCst),
-            last_screen_size: (0, 0),
+            last_vp: (0, 0, 0, 0),
             note_width,
 
             time: 0.,
@@ -477,13 +456,12 @@ impl Resource {
             background,
             illustration,
             icons: Self::load_icons().await?,
-            challenge_icons: Self::load_challenge_icons().await?,
             res_pack,
             player: if let Some(player) = player { player } else { load_tex!("player.jpg") },
             icon_back: load_tex!("back.png"),
-            icon_retry: load_tex!("retry.png"),
+            icon_retry: load_tex!("retry.png").with_mipmap(),
             icon_resume: load_tex!("resume.png"),
-            icon_proceed: load_tex!("proceed.png"),
+            icon_proceed: load_tex!("proceed.png").with_mipmap(),
 
             emitter,
 
@@ -515,15 +493,15 @@ impl Resource {
         );
     }
 
-    pub fn update_size(&mut self, dim: (u32, u32)) -> bool {
-        if self.last_screen_size == dim {
+    pub fn update_size(&mut self, vp: (i32, i32, i32, i32)) -> bool {
+        if self.last_vp == vp {
             return false;
         }
-        self.last_screen_size = dim;
+        self.last_vp = vp;
         if !self.no_effect || self.config.sample_count != 1 {
-            self.chart_target = Some(MSRenderTarget::new(dim, self.config.sample_count));
+            self.chart_target = Some(MSRenderTarget::new((vp.2 as u32, vp.3 as u32), self.config.sample_count));
         }
-        fn viewport(aspect_ratio: f32, (w, h): (u32, u32)) -> (i32, i32, i32, i32) {
+        fn viewport(aspect_ratio: f32, (x, y, w, h): (i32, i32, i32, i32)) -> (i32, i32, i32, i32) {
             let w = w as f32;
             let h = h as f32;
             let (rw, rh) = {
@@ -535,16 +513,16 @@ impl Resource {
                     (ew, h)
                 }
             };
-            (((w - rw) / 2.).round() as i32, ((h - rh) / 2.).round() as i32, rw as i32, rh as i32)
+            (x + ((w - rw) / 2.).round() as i32, y + ((h - rh) / 2.).round() as i32, rw as i32, rh as i32)
         }
         let aspect_ratio = self.config.aspect_ratio.unwrap_or(self.info.aspect_ratio);
         if self.config.fix_aspect_ratio {
             self.aspect_ratio = aspect_ratio;
-            self.camera.viewport = Some(viewport(aspect_ratio, dim));
+            self.camera.viewport = Some(viewport(aspect_ratio, vp));
         } else {
-            self.aspect_ratio = aspect_ratio.min(dim.0 as f32 / dim.1 as f32);
+            self.aspect_ratio = aspect_ratio.min(vp.2 as f32 / vp.3 as f32);
             self.camera.zoom.y = -self.aspect_ratio;
-            self.camera.viewport = Some(viewport(self.aspect_ratio, dim));
+            self.camera.viewport = Some(viewport(self.aspect_ratio, vp));
         };
         true
     }

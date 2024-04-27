@@ -1,9 +1,18 @@
 
 play = Chơi
 event = Sự kiện
-respack = Gói T.Nguyên
+respack = Tài nguyên
 
-not-opened = Chưa có sẵn
-not-logged-in = Chưa đăng nhập
+not-opened = Không có sẵn
+not-logged-in = Đăng nhập
 
-failed-to-update = Cập nhật thông tin người dùng thất bại
+failed-to-update = Không thể tải dữ liệu của bạn
+
+update = Đã có phiên bản{ $version }
+update-desc =
+  Phát hành: { $date }
+  Nội dung cập nhật: { $desc }
+update-ignore = Bỏ qua cập nhật
+update-go = Cập nhật
+
+change-char = Đổi nhân vật

@@ -12,6 +12,7 @@ use once_cell::sync::Lazy;
 use sasa::{PlaySfxParams, Sfx};
 use serde::Serialize;
 use std::{cell::RefCell, collections::HashMap, num::FpCategory};
+use tracing::debug;
 
 pub const FLICK_SPEED_THRESHOLD: f32 = 0.8;
 pub const LIMIT_PERFECT: f32 = 0.08;
@@ -209,7 +210,7 @@ impl JudgeInner {
 }
 
 #[cfg(feature = "closed")]
-mod inner;
+pub mod inner;
 #[cfg(feature = "closed")]
 use inner::*;
 
@@ -224,6 +225,7 @@ pub struct Judge {
     key_down_count: u32,
 
     pub(crate) inner: JudgeInner,
+    pub judgements: RefCell<Vec<(f32, u32, u32, Result<Judgement, bool>)>>,
 }
 
 static SUBSCRIBER_ID: Lazy<usize> = Lazy::new(register_input_subscriber);
@@ -250,6 +252,7 @@ impl Judge {
             key_down_count: 0,
 
             inner: JudgeInner::new(chart.lines.iter().map(|it| it.notes.iter().filter(|it| !it.fake).count() as u32).sum()),
+            judgements: RefCell::new(Vec::new()),
         }
     }
 
@@ -257,9 +260,11 @@ impl Judge {
         self.notes.iter_mut().for_each(|it| it.1 = 0);
         self.trackers.clear();
         self.inner.reset();
+        self.judgements.borrow_mut().clear();
     }
 
-    pub fn commit(&mut self, what: Judgement, diff: f32) {
+    pub fn commit(&mut self, t: f32, what: Judgement, line_id: u32, note_id: u32, diff: f32) {
+        self.judgements.borrow_mut().push((t, line_id, note_id, Ok(what)));
         self.inner.commit(what, diff);
     }
 
@@ -291,8 +296,10 @@ impl Judge {
         let vp = get_viewport();
         move |touch| {
             let p = touch.position;
-            touch.position =
-                vec2((p.x - vp.0 as f32) / vp.2 as f32 * 2. - 1., ((p.y - vp.1 as f32) / vp.3 as f32 * 2. - 1.) / (vp.2 as f32 / vp.3 as f32));
+            touch.position = vec2(
+                (p.x - vp.0 as f32) / vp.2 as f32 * 2. - 1.,
+                ((p.y - (screen_height() - (vp.1 + vp.3) as f32)) / vp.3 as f32 * 2. - 1.) / (vp.2 as f32 / vp.3 as f32),
+            );
             if flip_x {
                 touch.position.x *= -1.;
             }
@@ -301,8 +308,9 @@ impl Judge {
 
     pub fn get_touches() -> Vec<Touch> {
         TOUCHES.with(|it| {
+            let guard = it.borrow();
             let tr = Self::touch_transform(false);
-            it.borrow()
+            guard
                 .0
                 .iter()
                 .cloned()
@@ -513,7 +521,7 @@ impl Judge {
             if let (Some((line_id, id)), _, dt, _) = closest {
                 let line = &mut chart.lines[line_id];
                 if matches!(line.notes[id as usize].kind, NoteKind::Drag) {
-                    info!("reject by drag");
+                    debug!("reject by drag");
                     continue;
                 }
                 if click {
@@ -530,6 +538,7 @@ impl Judge {
                             }
                             NoteKind::Hold { .. } => {
                                 play_sfx(&mut res.sfx_click, &res.config);
+                                self.judgements.borrow_mut().push((t, line_id as _, id, Err(dt <= LIMIT_PERFECT)));
                                 note.judge = JudgeStatus::Hold(dt <= LIMIT_PERFECT, t, t, false, f32::INFINITY);
                             }
                             _ => unreachable!(),
@@ -591,6 +600,7 @@ impl Judge {
                         }
                         NoteKind::Hold { .. } => {
                             play_sfx(&mut res.sfx_click, &res.config);
+                            self.judgements.borrow_mut().push((t, line_id as _, id, Err(dt <= LIMIT_PERFECT)));
                             note.judge = JudgeStatus::Hold(dt <= LIMIT_PERFECT, t, (t - note.time) / spd, false, f32::INFINITY);
                         }
                         _ => unreachable!(),
@@ -703,7 +713,10 @@ impl Judge {
             let note = &line.notes[id as usize];
             let line_tr = line.now_transform(res, &chart.lines);
             self.commit(
+                t,
                 judgement,
+                line_id as _,
+                id,
                 if matches!(judgement, Judgement::Miss) {
                     0.25
                 } else if matches!(note.kind, NoteKind::Drag | NoteKind::Flick) {
@@ -794,6 +807,7 @@ impl Judge {
                 }
                 note.judge = if matches!(note.kind, NoteKind::Hold { .. }) {
                     play_sfx(&mut res.sfx_click, &res.config);
+                    self.judgements.borrow_mut().push((t, line_id as _, *id, Err(true)));
                     JudgeStatus::Hold(true, t, (t - note.time) / spd, false, f32::INFINITY)
                 } else {
                     judgements.push((line_id, *id));
@@ -808,7 +822,7 @@ impl Judge {
             }
         }
         for (line_id, id) in judgements.into_iter() {
-            self.commit(Judgement::Perfect, 0.);
+            self.commit(t, Judgement::Perfect, line_id as _, id, 0.);
             let (note_transform, note_kind) = {
                 let line = &mut chart.lines[line_id];
                 let note = &mut line.notes[id as usize];

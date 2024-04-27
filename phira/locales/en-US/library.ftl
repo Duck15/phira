@@ -1,7 +1,8 @@
 
+label = LIBRARY
+
 local = Local
 popular = Popular
-list-empty = Nothing here
 
 page = Page { $current } / { $total }
 prev-page = Prev page

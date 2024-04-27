@@ -1,4 +1,6 @@
 
-load-msg-fail = Tải tin nhắn thất bại
-no-msg = Chưa có gì cả
-subtitle = {author} lúc {time}
+label = THƯ
+
+load-msg-fail = Không thể tải thư
+no-msg = Không có gì ở đây
+subtitle = Đăng bởi { $author } lúc { $time }

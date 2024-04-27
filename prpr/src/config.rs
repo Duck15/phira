@@ -4,17 +4,6 @@ use serde::{Deserialize, Serialize};
 
 pub static TIPS: Lazy<Vec<String>> = Lazy::new(|| include_str!("tips.txt").split('\n').map(str::to_owned).collect());
 
-#[derive(Clone, Deserialize, Serialize)]
-#[serde(rename_all = "camelCase")]
-pub enum ChallengeModeColor {
-    White,
-    Green,
-    Blue,
-    Red,
-    Golden,
-    Rainbow,
-}
-
 bitflags! {
     #[derive(Clone, Copy, Default, Deserialize, Serialize, PartialEq, Eq, Debug)]
     #[serde(transparent)]
@@ -34,8 +23,6 @@ pub struct Config {
     pub aggressive: bool,
     pub aspect_ratio: Option<f32>,
     pub audio_buffer_size: Option<u32>,
-    pub challenge_color: ChallengeModeColor,
-    pub challenge_rank: u32,
     pub chart_debug: bool,
     pub disable_effect: bool,
     pub double_click_to_pause: bool,
@@ -45,6 +32,8 @@ pub struct Config {
     pub interactive: bool,
     pub note_scale: f32,
     pub mods: Mods,
+    pub mp_enabled: bool,
+    pub mp_address: String,
     pub offline_mode: bool,
     pub offset: f32,
     pub particle: bool,
@@ -70,8 +59,6 @@ impl Default for Config {
             aggressive: true,
             aspect_ratio: None,
             audio_buffer_size: None,
-            challenge_color: ChallengeModeColor::Golden,
-            challenge_rank: 45,
             chart_debug: false,
             disable_effect: false,
             double_click_to_pause: true,
@@ -80,6 +67,8 @@ impl Default for Config {
             fxaa: false,
             interactive: true,
             mods: Mods::default(),
+            mp_address: "mp2.phira.cn:12345".to_owned(),
+            mp_enabled: false,
             note_scale: 1.0,
             offline_mode: false,
             offset: 0.,
